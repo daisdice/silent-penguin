@@ -3,11 +3,10 @@
 **SILENT PENGUIN** は、ブラウザで遊べる1人用の戦略カードゲーム（SPA）です。
 名作カードゲーム『ペンギンパーティー』のルールをベースに、プログラミング学習および非営利のファンメイド作品として開発されました。
 
-[**👉 デモをプレイする (GitHub Pages)**](https://<あなたのユーザー名>.github.io/<リポジトリ名>/)
-![Game Screenshot](https://via.placeholder.com/800x450?text=Game+Screenshot)
+[**👉 デモをプレイする (GitHub Pages)**](https://daisdice.github.io/silent-penguin/)
 ## ⚠️ 免責事項 (Disclaimer)
 
-本ソフトウェアは、ライナー・クニツィア（Reiner Knizia）氏のデザインしたカードゲーム『ペンギンパーティー（Penguin Party）』にインスパイアされた**二次創作（ファンゲーム）**です。
+本ソフトウェアは、ライナー・クニツィア（Reiner Knizia）氏のデザインしたカードゲーム『ペンギンパーティー（Penguin Party）』にインスパイアされた二次創作（ファンゲーム）です。
 
 * 本プロジェクトは**非営利目的**であり、プログラミング技術の研究およびポートフォリオとして公開されています。
 * 原作者、販売元、および関連企業とは一切関係ありません。
@@ -46,4 +45,5 @@
 ├── manifest.json    # PWA設定ファイル
 ├── sw.js            # Service Worker (オフライン対応・キャッシュ)
 ├── icon-192.png     # PWA用アイコン (192x192)
-└── icon-512.png     # PWA用アイコン (512x512)
+├── icon-512.png     # PWA用アイコン (512x512)
+└── favicon.png      # ファビコン
