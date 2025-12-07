@@ -164,6 +164,22 @@
             }
         }
 
+        @keyframes jump {
+
+            0%,
+            100% {
+                transform: translateY(0) rotate(0deg);
+            }
+
+            25% {
+                transform: translateY(-20px) rotate(-10deg);
+            }
+
+            75% {
+                transform: translateY(-10px) rotate(10deg);
+            }
+        }
+
         .animate-pop-in {
             animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
@@ -174,6 +190,10 @@
 
         .animate-float {
             animation: float 2s ease-in-out infinite;
+        }
+
+        .animate-jump {
+            animation: jump 0.8s ease-in-out infinite;
         }
 
         .ThinkingBubble {
@@ -434,6 +454,19 @@
                 }
             }, [turn, validSlots, passed, gameStatus]);
 
+            useEffect(() => {
+                if (gameStatus === 'game_over' && finalResult === 'win') {
+                    const duration = 3000;
+                    const end = Date.now() + duration;
+                    const frame = () => {
+                        confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#EF4444', '#3B82F6', '#EAB308', '#A855F7'] });
+                        confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#EF4444', '#3B82F6', '#EAB308', '#A855F7'] });
+                        if (Date.now() < end) requestAnimationFrame(frame);
+                    };
+                    frame();
+                }
+            }, [gameStatus, finalResult]);
+
             const startRound = (roundNum) => {
                 let deck = [];
                 Object.keys(COLORS).forEach(c => {
@@ -646,6 +679,10 @@
                                 <div key={r} className="flex justify-center">
                                     {row.map((card, c) => {
                                         const isValid = validSlots.some(s => s.r === r && s.c === c);
+                                        // スマートガイド: カード選択中は、そのカードが置ける場所だけをハイライト
+                                        const isGuideActive = selectedCardIndex !== null;
+                                        const canPlaceSelected = isGuideActive ? (isValid && isColorMatch(r, c, playerHand[selectedCardIndex].color)) : isValid;
+
                                         return (
                                             <div key={`${r}-${c}`} className="relative w-9 h-12 sm:w-14 sm:h-20 mx-0.5 grid-cell">
                                                 {card ? (
@@ -654,8 +691,8 @@
                                                         <span className="absolute bottom-1 right-1 text-xs sm:text-sm opacity-50">{COLORS[card.color].icon}</span>
                                                     </div>
                                                 ) : (
-                                                    (isValid && turn === 'player' && gameStatus === 'playing') ? (
-                                                        <div onClick={() => handlePlayerClick(r, c)} className="w-full h-full rounded cursor-pointer valid-zone flex items-center justify-center text-xs text-slate-300">PUSH</div>
+                                                    (canPlaceSelected && turn === 'player' && gameStatus === 'playing') ? (
+                                                        <div onClick={() => isGuideActive ? handlePlayerClick(r, c) : null} className={`w-full h-full rounded cursor-pointer valid-zone flex items-center justify-center text-xs text-slate-300 ${isGuideActive ? 'border-yellow-400 bg-yellow-400/20' : ''}`}>{isGuideActive ? 'HERE' : 'PUSH'}</div>
                                                     ) : <div className="w-full h-full opacity-0"></div>
                                                 )}
                                             </div>
@@ -688,6 +725,7 @@
                         {gameStatus === 'game_over' && (
                             <div className="absolute inset-0 bg-slate-900/95 z-50 flex items-center justify-center animate-bounce-in">
                                 <div className="bg-slate-800 p-8 rounded-2xl border-2 border-cyan-500 shadow-2xl text-center max-w-sm w-full">
+                                    <div className={`text-6xl mb-4 ${finalResult === 'win' ? 'animate-jump' : ''}`}>🐧</div>
                                     <h2 className="text-4xl font-black mb-2 text-white italic">{finalResult === 'win' ? 'VICTORY' : (finalResult === 'loss' ? 'DEFEAT' : 'DRAW')}</h2>
                                     <div className="w-16 h-1 bg-cyan-500 mx-auto mb-6"></div>
                                     <div className="flex justify-between px-8 mb-8 font-bold text-xl">
