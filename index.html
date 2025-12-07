@@ -674,8 +674,9 @@
                                 isActive={turn === 'player' && gameStatus === 'playing'}
                                 isPassed={passed.player}
                             />
-                            <div className="text-center">
+                            <div className="text-center flex flex-col items-center">
                                 <div className="text-xs font-bold text-slate-500 mt-1 tracking-widest">ROUND {roundCount}</div>
+                                <button onClick={onExit} className="text-[10px] text-slate-600 hover:text-red-400 font-bold tracking-widest mt-1 border border-transparent hover:border-red-400/30 rounded px-2 transition-all">EXIT</button>
                             </div>
                             <ChipView
                                 count={chips.cpu}
