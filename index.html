@@ -272,14 +272,38 @@
                 hard: { wins: 0, losses: 0, draws: 0 }
             };
         };
+        const getUnlockedLevels = () => {
+            const saved = localStorage.getItem('silent_penguin_unlocked');
+            return saved ? JSON.parse(saved) : ['easy'];
+        };
+        const unlockLevel = (level) => {
+            const current = getUnlockedLevels();
+            if (!current.includes(level)) {
+                const newLevels = [...current, level];
+                localStorage.setItem('silent_penguin_unlocked', JSON.stringify(newLevels));
+                return true;
+            }
+            return false;
+        };
+
         const saveGameResult = (difficulty, result) => {
             const stats = getStats();
             if (stats[difficulty]) {
                 stats[difficulty][result === 'win' ? 'wins' : (result === 'loss' ? 'losses' : 'draws')]++;
                 localStorage.setItem('silent_penguin_stats', JSON.stringify(stats));
             }
+
+            // Unlock logic
+            if (result === 'win') {
+                if (difficulty === 'easy' && unlockLevel('normal')) return 'normal';
+                else if (difficulty === 'normal' && unlockLevel('hard')) return 'hard';
+            }
+            return null;
         };
-        const clearStats = () => localStorage.removeItem('silent_penguin_stats');
+        const clearStats = () => {
+            localStorage.removeItem('silent_penguin_stats');
+            localStorage.removeItem('silent_penguin_unlocked');
+        };
 
         const triggerConfetti = () => {
             var duration = 3 * 1000;
@@ -387,16 +411,39 @@
         }
 
         function DifficultySelect({ onSelect, onBack }) {
+            const [unlocked, setUnlocked] = useState(getUnlockedLevels());
+
             return (
                 <div className="flex flex-col items-center justify-center h-full animate-bounce-in">
                     <h2 className="text-2xl font-bold mb-8 text-white tracking-wider">SELECT DIFFICULTY</h2>
                     <div className="flex flex-col gap-4 w-full max-w-sm px-4">
-                        {Object.entries(DIFFICULTIES).map(([key, config]) => (
-                            <button key={key} onClick={() => onSelect(key)} className="group bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 hover:border-cyan-400 p-4 rounded-lg shadow-lg hover:shadow-cyan-500/20 transition-all text-left flex items-center justify-between">
-                                <div><div className={`font-bold text-xl tracking-widest ${config.color}`}>{config.label}</div><div className="text-slate-400 text-xs">{config.desc}</div></div>
-                                <div className="text-2xl opacity-0 group-hover:opacity-100 transition-opacity text-cyan-400">▶</div>
-                            </button>
-                        ))}
+                        {Object.entries(DIFFICULTIES).map(([key, config]) => {
+                            const isUnlocked = unlocked.includes(key);
+                            return (
+                                <button
+                                    key={key}
+                                    onClick={() => isUnlocked && onSelect(key)}
+                                    disabled={!isUnlocked}
+                                    className={`
+                                        group border-2 p-4 rounded-lg shadow-lg transition-all text-left flex items-center justify-between relative overflow-hidden
+                                        ${isUnlocked
+                                            ? 'bg-slate-800 hover:bg-slate-700 border-slate-600 hover:border-cyan-400 hover:shadow-cyan-500/20 cursor-pointer'
+                                            : 'bg-slate-900 border-slate-800 opacity-60 cursor-not-allowed grayscale'}
+                                    `}
+                                >
+                                    <div>
+                                        <div className={`font-bold text-xl tracking-widest ${isUnlocked ? config.color : 'text-slate-500'}`}>{config.label}</div>
+                                        <div className="text-slate-400 text-xs">{config.desc}</div>
+                                    </div>
+
+                                    {isUnlocked ? (
+                                        <div className="text-2xl opacity-0 group-hover:opacity-100 transition-opacity text-cyan-400">▶</div>
+                                    ) : (
+                                        <div className="text-2xl text-slate-600">🔒</div>
+                                    )}
+                                </button>
+                            );
+                        })}
                     </div>
                     <Button onClick={onBack} className="mt-8 bg-slate-700 hover:bg-slate-600 text-slate-200">BACK</Button>
                 </div>
@@ -405,7 +452,7 @@
 
         function StatsScreen({ onBack }) {
             const [stats, setStats] = useState(getStats());
-            const handleReset = () => { if (confirm('Reset all stats?')) { clearStats(); setStats(getStats()); } };
+            const handleReset = () => { if (confirm('Reset all stats and unlocks?')) { clearStats(); setStats(getStats()); } };
             return (
                 <div className="flex flex-col items-center justify-center h-full animate-bounce-in p-4">
                     <h2 className="text-3xl font-bold mb-8 text-white tracking-widest">STATISTICS</h2>
@@ -523,6 +570,7 @@
             const [perfectTarget, setPerfectTarget] = useState(null); // 'player' | 'cpu' | null
             const [validSlots, setValidSlots] = useState([]);
             const [cameraOffset, setCameraOffset] = useState(0); // number of units to shift
+            const [unlockedLevel, setUnlockedLevel] = useState(null);
             const initialized = useRef(false);
 
             useEffect(() => {
@@ -785,7 +833,9 @@
                         let res = 'draw';
                         if (nextP < nextC) res = 'win'; else if (nextP > nextC) res = 'loss';
                         setFinalResult(res);
-                        saveGameResult(difficulty, res);
+                        const unlockedKey = saveGameResult(difficulty, res);
+                        if (unlockedKey) setUnlockedLevel(unlockedKey);
+
                         setGameStatus('game_over');
                         if (res === 'win') triggerConfetti();
                     }, 1500);
@@ -908,6 +958,16 @@
                                     <div className="bg-slate-800 p-8 rounded-2xl border-2 border-cyan-500 shadow-2xl text-center max-w-sm w-full">
                                         <div className={`text-6xl mb-4 ${finalResult === 'win' ? 'animate-jump' : ''}`}>🐧</div>
                                         <h2 className="text-4xl font-black mb-2 text-white italic">{finalResult === 'win' ? 'VICTORY' : (finalResult === 'loss' ? 'DEFEAT' : 'DRAW')}</h2>
+
+                                        {unlockedLevel && (
+                                            <div className="my-4 animate-bounce-in">
+                                                <div className="text-yellow-400 font-bold text-sm tracking-widest mb-1">UNLOCKED!</div>
+                                                <div className={`text-2xl font-black ${DIFFICULTIES[unlockedLevel].color} border border-dashed border-slate-600 rounded p-2`}>
+                                                    {DIFFICULTIES[unlockedLevel].label}
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <div className="w-16 h-1 bg-cyan-500 mx-auto mb-6"></div>
                                         <div className="flex justify-between px-8 mb-8 font-bold text-xl">
                                             <div className="text-center"><div>YOU</div><div className="text-3xl text-cyan-400">{chips.player}</div></div>
