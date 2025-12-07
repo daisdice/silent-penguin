@@ -319,7 +319,7 @@
                             setGameStatus('playing');
                             const isPlayerStart = roundCount % 2 !== 0;
                             setTurn(isPlayerStart ? 'player' : 'cpu');
-                            setMessage(isPlayerStart ? 'YOUR TURN' : 'CPU TURN');
+                            setMessage("");
                         }, 500);
                     }
                 }
@@ -489,11 +489,13 @@
                 }
             };
 
-            const ChipView = ({ count, label, isDanger }) => (
-                <div className={`flex flex-col items-center px-4 py-1 rounded-lg ${isDanger ? 'bg-red-900/40 border border-red-500' : ''}`}>
-                    <div className="text-xs text-slate-400 font-bold mb-1">{label}</div>
-                    <div className="text-2xl font-black flex items-baseline gap-1">
-                        {count} <span className="text-xs font-normal opacity-50">/ {LOSE_THRESHOLD}</span>
+            const ChipView = ({ count, label, isDanger, isActive }) => (
+                <div className={`transition-all duration-300 rounded-lg p-0.5 ${isActive ? 'bg-gradient-to-r from-yellow-300 to-yellow-500 shadow-[0_0_15px_rgba(253,224,71,0.5)] scale-105' : 'bg-transparent'}`}>
+                    <div className={`flex flex-col items-center px-4 py-1 rounded-lg ${isDanger ? 'bg-red-900/40 border border-red-500' : (isActive ? 'bg-slate-800' : '')}`}>
+                        <div className={`text-xs font-bold mb-1 ${isActive ? 'text-yellow-400' : 'text-slate-400'}`}>{isActive ? 'TURN' : label}</div>
+                        <div className="text-2xl font-black flex items-baseline gap-1">
+                            {count} <span className="text-xs font-normal opacity-50">/ {LOSE_THRESHOLD}</span>
+                        </div>
                     </div>
                 </div>
             );
@@ -506,8 +508,8 @@
                             <span className={`text-xs border px-2 py-0.5 rounded ${DIFFICULTIES[difficulty].color} border-current tracking-wider`}>{DIFFICULTIES[difficulty].label}</span>
                         </div>
                         <div className="flex gap-2">
-                            <ChipView count={chips.player} label="YOU" isDanger={chips.player >= LOSE_THRESHOLD - 2} />
-                            <ChipView count={chips.cpu} label="CPU" isDanger={chips.cpu >= LOSE_THRESHOLD - 2} />
+                            <ChipView count={chips.player} label="YOU" isDanger={chips.player >= LOSE_THRESHOLD - 2} isActive={turn === 'player' && gameStatus === 'playing'} />
+                            <ChipView count={chips.cpu} label="CPU" isDanger={chips.cpu >= LOSE_THRESHOLD - 2} isActive={turn === 'cpu' && gameStatus === 'playing'} />
                         </div>
                         <button onClick={onExit} className="text-xs bg-slate-700 px-3 py-1 rounded hover:bg-slate-600 text-slate-300">EXIT</button>
                     </div>
@@ -554,7 +556,7 @@
                                 </div>
                             ))}
                         </div>
-                        <div className="h-6 text-yellow-400 font-bold drop-shadow-md tracking-widest mb-1">{message}</div>
+                        <div className="h-6 text-yellow-400 font-bold drop-shadow-md tracking-widest mb-1">{message && message.includes('TURN') ? '' : message}</div>
 
                         {gameStatus === 'round_over' && (
                             <div className="absolute inset-0 bg-slate-900/90 z-40 flex items-center justify-center animate-bounce-in">
