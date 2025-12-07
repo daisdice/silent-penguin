@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SILENT PENGUIN</title>
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+
+    <style>
+        .card-shadow {
+            box-shadow: 2px 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        .selected {
+            transform: translateY(-15px);
+            box-shadow: 0 0 15px yellow;
+            border: 2px solid yellow;
+            z-index: 50;
+        }
+
+        .valid-zone {
+            border: 3px dashed rgba(255, 255, 255, 0.4);
+            background-color: rgba(255, 255, 255, 0.1);
+            animation: pulse 1.5s infinite;
+        }
+
+        .cpu-card {
+            background: repeating-linear-gradient(45deg, #475569, #475569 10px, #334155 10px, #334155 20px);
+        }
+
+        .title-logo {
+            text-shadow: 0px 0px 20px rgba(34, 211, 238, 0.2);
+            letter-spacing: 0.1em;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.5;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.5;
+            }
+        }
+
+        @keyframes bounce-in {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slide-up {
+            0% {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes text-pop {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+
+            50% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fade-out {
+            0% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0;
+            }
+        }
+
+        .animate-bounce-in {
+            animation: bounce-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .animate-slide-up {
+            animation: slide-up 0.3s ease-out forwards;
+        }
+
+        .animate-text-pop {
+            animation: text-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .animate-fade-out {
+            animation: fade-out 0.5s ease-out 1s forwards;
+        }
+
+        .grid-cell {
+            flex-shrink: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #0f172a;
+            color: white;
+            user-select: none;
+            touch-action: manipulation;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen overflow-hidden bg-gradient-to-b from-slate-900 to-slate-800">
+    <div id="root"></div>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW failed', err));
+            });
+        }
+    </script>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- 定数 ---
+        const COLORS = {
+            Green: { bg: 'bg-green-500', text: 'text-green-500', count: 8, label: '緑', icon: '♣' },
+            Red: { bg: 'bg-red-500', text: 'text-red-500', count: 7, label: '赤', icon: '♥' },
+            Blue: { bg: 'bg-blue-500', text: 'text-blue-500', count: 7, label: '青', icon: '♦' },
+            Yellow: { bg: 'bg-yellow-400', text: 'text-yellow-400', count: 7, label: '黄', icon: '★' },
+            Purple: { bg: 'bg-purple-500', text: 'text-purple-500', count: 7, label: '紫', icon: '♠' },
+        };
+        const DIFFICULTIES = {
+            easy: { label: 'EASY', color: 'text-green-400', desc: 'Random Moves' },
+            normal: { label: 'NORMAL', color: 'text-yellow-400', desc: 'Balanced Strategy' },
+            hard: { label: 'HARD', color: 'text-red-500', desc: 'Aggressive' },
+        };
+        const PYRAMID_ROWS = 7;
+        const BASE_WIDTH_LIMIT = 7;
+        const INTERNAL_BASE_SIZE = 13;
+        const BASE_ROW_INDEX = 6;
+        const LOSE_THRESHOLD = 10;
+
+        // --- ユーティリティ ---
+        const getStats = () => {
+            const saved = localStorage.getItem('silent_penguin_stats');
+            return saved ? JSON.parse(saved) : {
+                easy: { wins: 0, losses: 0, draws: 0 },
+                normal: { wins: 0, losses: 0, draws: 0 },
+                hard: { wins: 0, losses: 0, draws: 0 }
+            };
+        };
+        const saveGameResult = (difficulty, result) => {
+            const stats = getStats();
+            if (stats[difficulty]) {
+                stats[difficulty][result === 'win' ? 'wins' : (result === 'loss' ? 'losses' : 'draws')]++;
+                localStorage.setItem('silent_penguin_stats', JSON.stringify(stats));
+            }
+        };
+        const clearStats = () => localStorage.removeItem('silent_penguin_stats');
+
+        const triggerConfetti = () => {
+            var duration = 3 * 1000;
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+            var random = (min, max) => Math.random() * (max - min) + min;
+            var interval = setInterval(function () {
+                var timeLeft = animationEnd - Date.now();
+                if (timeLeft <= 0) return clearInterval(interval);
+                var particleCount = 50 * (timeLeft / duration);
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: random(0.1, 0.3), y: Math.random() - 0.2 } }));
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: random(0.7, 0.9), y: Math.random() - 0.2 } }));
+            }, 250);
+        };
+
+        // --- Components ---
+        function App() {
+            const [view, setView] = useState('title');
+            const [selectedDifficulty, setSelectedDifficulty] = useState('normal');
+
+            const startGame = (diff) => {
+                setSelectedDifficulty(diff);
+                setView('game');
+            };
+
+            return (
+                <div className="w-full h-screen flex flex-col font-sans">
+                    {view === 'title' && <TitleScreen onStart={() => setView('difficulty')} onStats={() => setView('stats')} />}
+                    {view === 'difficulty' && <DifficultySelect onSelect={startGame} onBack={() => setView('title')} />}
+                    {view === 'stats' && <StatsScreen onBack={() => setView('title')} />}
+                    {view === 'game' && <GameSession difficulty={selectedDifficulty} onExit={() => setView('title')} />}
+                </div>
+            );
+        }
+
+        function TitleScreen({ onStart, onStats }) {
+            return (
+                <div className="flex flex-col items-center justify-center h-full animate-bounce-in">
+                    <div className="text-6xl sm:text-8xl mb-6 opacity-90">🐧</div>
+                    <h1 className="text-4xl sm:text-6xl font-black text-white title-logo mb-10 text-center leading-tight">
+                        SILENT<br /><span className="text-cyan-400">PENGUIN</span>
+                    </h1>
+
+                    <div className="flex flex-col gap-4 w-64">
+                        <button onClick={onStart} className="bg-cyan-700 hover:bg-cyan-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:scale-105 transition tracking-widest">START</button>
+                        <button onClick={onStats} className="bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-3 px-6 rounded-lg shadow-lg hover:scale-105 transition tracking-widest">STATS</button>
+                    </div>
+                    <div className="absolute bottom-4 text-slate-600 text-xs font-mono">v1.0.0</div>
+                </div>
+            );
+        }
+
+        function DifficultySelect({ onSelect, onBack }) {
+            return (
+                <div className="flex flex-col items-center justify-center h-full animate-bounce-in">
+                    <h2 className="text-2xl font-bold mb-8 text-white tracking-wider">SELECT DIFFICULTY</h2>
+                    <div className="flex flex-col gap-4 w-full max-w-sm px-4">
+                        {Object.entries(DIFFICULTIES).map(([key, config]) => (
+                            <button key={key} onClick={() => onSelect(key)} className="group bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 hover:border-cyan-400 p-4 rounded-xl transition-all text-left flex items-center justify-between">
+                                <div><div className={`font-bold text-xl ${config.color}`}>{config.label}</div><div className="text-slate-400 text-xs">{config.desc}</div></div>
+                                <div className="text-2xl opacity-0 group-hover:opacity-100 transition-opacity text-cyan-400">▶</div>
+                            </button>
+                        ))}
+                    </div>
+                    <button onClick={onBack} className="mt-8 text-slate-400 hover:text-white underline">BACK</button>
+                </div>
+            );
+        }
+
+        function StatsScreen({ onBack }) {
+            const [stats, setStats] = useState(getStats());
+            const handleReset = () => { if (confirm('Reset all stats?')) { clearStats(); setStats(getStats()); } };
+            return (
+                <div className="flex flex-col items-center justify-center h-full animate-bounce-in p-4">
+                    <h2 className="text-3xl font-bold mb-8 text-white tracking-widest">STATISTICS</h2>
+                    <div className="bg-slate-800 p-6 rounded-xl shadow-xl w-full max-w-md border border-slate-700">
+                        <div className="grid grid-cols-4 gap-4 mb-4 text-xs font-bold text-slate-400 border-b border-slate-600 pb-2 text-center">
+                            <div className="text-left pl-2">LVL</div><div>WIN</div><div>LOSE</div><div>DRAW</div>
+                        </div>
+                        {Object.entries(DIFFICULTIES).map(([key, config]) => (
+                            <div key={key} className="grid grid-cols-4 gap-4 py-3 border-b border-slate-700 text-center items-center">
+                                <div className={`text-left pl-2 font-bold ${config.color} text-sm`}>{config.label}</div>
+                                <div className="text-xl">{stats[key].wins}</div><div className="text-xl">{stats[key].losses}</div><div className="text-slate-500">{stats[key].draws}</div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="flex gap-4 mt-8">
+                        <button onClick={onBack} className="bg-slate-600 px-6 py-2 rounded text-white hover:bg-slate-500">BACK</button>
+                        <button onClick={handleReset} className="bg-red-900/30 text-red-300 px-4 py-2 rounded text-xs border border-red-900 hover:bg-red-900/50">RESET</button>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- GameSession ---
+        function GameSession({ difficulty, onExit }) {
+            const [chips, setChips] = useState({ player: 0, cpu: 0 });
+            const [roundCount, setRoundCount] = useState(1);
+            const [gameStatus, setGameStatus] = useState('intro');
+            const [finalResult, setFinalResult] = useState(null);
+            const [pyramid, setPyramid] = useState([]);
+            const [playerHand, setPlayerHand] = useState([]);
+            const [cpuHand, setCpuHand] = useState([]);
+            const [dealtCount, setDealtCount] = useState(0);
+            const [selectedCardIndex, setSelectedCardIndex] = useState(null);
+            const [turn, setTurn] = useState('player');
+            const [passed, setPassed] = useState({ player: false, cpu: false });
+            const [message, setMessage] = useState("");
+            const [validSlots, setValidSlots] = useState([]);
+            const initialized = useRef(false);
+
+            useEffect(() => {
+                if (!initialized.current) {
+                    startRound(1);
+                    initialized.current = true;
+                }
+            }, []);
+
+            useEffect(() => {
+                if (gameStatus === 'dealing') {
+                    if (dealtCount < 14) {
+                        const timer = setTimeout(() => { setDealtCount(prev => prev + 1); }, 70);
+                        return () => clearTimeout(timer);
+                    } else {
+                        setTimeout(() => {
+                            setGameStatus('playing');
+                            const isPlayerStart = roundCount % 2 !== 0;
+                            setTurn(isPlayerStart ? 'player' : 'cpu');
+                            setMessage(isPlayerStart ? 'YOUR TURN' : 'CPU TURN');
+                        }, 500);
+                    }
+                }
+            }, [gameStatus, dealtCount, roundCount]);
+
+            useEffect(() => {
+                if (pyramid.length > 0) setValidSlots(calculateValidSlots(pyramid));
+            }, [pyramid]);
+
+            useEffect(() => {
+                if (gameStatus !== 'playing') return;
+                if ((passed.player || playerHand.length === 0) && (passed.cpu || cpuHand.length === 0)) {
+                    finishRound();
+                    return;
+                }
+                if (turn === 'player') {
+                    if (playerHand.length === 0 || passed.player) { setTurn('cpu'); return; }
+                    if (validSlots.length === 0 && pyramid.length > 0) {
+                        if (pyramid[BASE_ROW_INDEX].every(c => c === null)) return;
+                    }
+                    if (!hasValidMove(playerHand, validSlots, pyramid)) {
+                        setPassed(p => ({ ...p, player: true }));
+                        setMessage("NO MOVES... PASS");
+                        setTimeout(() => setTurn('cpu'), 1500);
+                    }
+                } else if (turn === 'cpu') {
+                    if (cpuHand.length === 0 || passed.cpu) { setTurn('player'); return; }
+                    const thinkTime = difficulty === 'hard' ? 1000 : 800;
+                    const timer = setTimeout(cpuThinking, thinkTime);
+                    return () => clearTimeout(timer);
+                }
+            }, [turn, validSlots, passed, gameStatus]);
+
+            const startRound = (roundNum) => {
+                let deck = [];
+                Object.keys(COLORS).forEach(c => {
+                    for (let i = 0; i < COLORS[c].count; i++) deck.push({ id: Math.random().toString(36).substr(2, 9), color: c });
+                });
+                deck.sort(() => Math.random() - 0.5);
+                const removed = deck.splice(0, 8);
+                const pHand = deck.splice(0, 14).sort((a, b) => a.color.localeCompare(b.color));
+                const cHand = deck.splice(0, 14);
+
+                const initPyramid = Array.from({ length: PYRAMID_ROWS }, (_, r) =>
+                    Array(INTERNAL_BASE_SIZE - (BASE_ROW_INDEX - r)).fill(null)
+                );
+                setPyramid(initPyramid);
+                setValidSlots([{ r: BASE_ROW_INDEX, c: 6 }]);
+                setPlayerHand(pHand);
+                setCpuHand(cHand);
+                setPassed({ player: false, cpu: false });
+                setSelectedCardIndex(null);
+                setDealtCount(0);
+                setMessage("");
+                setGameStatus('intro');
+                setTimeout(() => setGameStatus('dealing'), 1800);
+            };
+
+            const calculateValidSlots = (currentPyramid) => {
+                const slots = [];
+                const baseRow = currentPyramid[BASE_ROW_INDEX];
+                const occupiedIndices = baseRow.map((c, i) => c !== null ? i : -1).filter(i => i !== -1);
+                if (occupiedIndices.length === 0) {
+                    slots.push({ r: BASE_ROW_INDEX, c: 6 });
+                } else {
+                    const minIdx = Math.min(...occupiedIndices);
+                    const maxIdx = Math.max(...occupiedIndices);
+                    if (minIdx > 0 && (maxIdx - (minIdx - 1) + 1) <= BASE_WIDTH_LIMIT) slots.push({ r: BASE_ROW_INDEX, c: minIdx - 1 });
+                    if (maxIdx < baseRow.length - 1 && ((maxIdx + 1) - minIdx + 1) <= BASE_WIDTH_LIMIT) slots.push({ r: BASE_ROW_INDEX, c: maxIdx + 1 });
+                }
+                for (let r = 0; r < BASE_ROW_INDEX; r++) {
+                    for (let c = 0; c < currentPyramid[r].length; c++) {
+                        if (currentPyramid[r][c] !== null) continue;
+                        const l = currentPyramid[r + 1][c];
+                        const rP = currentPyramid[r + 1][c + 1];
+                        if (l && rP) slots.push({ r, c });
+                    }
+                }
+                return slots;
+            };
+
+            const isColorMatch = (r, c, cardColor) => {
+                if (r === BASE_ROW_INDEX) return true;
+                if (!pyramid[r + 1]) return false;
+                const l = pyramid[r + 1][c];
+                const rP = pyramid[r + 1][c + 1];
+                if (!l || !rP) return false;
+                return (cardColor === l.color || cardColor === rP.color);
+            };
+
+            const hasValidMove = (hand, slots, currentPyramid) => {
+                return hand.some(card => slots.some(slot => isColorMatch(slot.r, slot.c, card.color)));
+            };
+
+            const placeCard = (r, c, card, who, handIndex) => {
+                const newPyramid = [...pyramid];
+                newPyramid[r] = [...newPyramid[r]];
+                newPyramid[r][c] = card;
+                setPyramid(newPyramid);
+                if (who === 'player') {
+                    const newHand = playerHand.filter((_, i) => i !== handIndex);
+                    setPlayerHand(newHand);
+                    setDealtCount(prev => prev - 1);
+                    setSelectedCardIndex(null);
+                    setTurn('cpu');
+                } else {
+                    const newHand = cpuHand.filter((_, i) => i !== handIndex);
+                    setCpuHand(newHand);
+                    setTurn('player');
+                }
+            };
+
+            const handlePlayerClick = (r, c) => {
+                if (turn !== 'player' || selectedCardIndex === null || gameStatus !== 'playing') return;
+                const card = playerHand[selectedCardIndex];
+                if (!validSlots.some(s => s.r === r && s.c === c)) return;
+                if (!isColorMatch(r, c, card.color)) { setMessage("Wrong Color"); return; }
+                placeCard(r, c, card, 'player', selectedCardIndex);
+            };
+
+            const cpuThinking = () => {
+                let candidates = [];
+                validSlots.forEach(slot => {
+                    cpuHand.forEach((card, hIdx) => {
+                        if (isColorMatch(slot.r, slot.c, card.color)) {
+                            let score = slot.r * 10;
+                            if (difficulty === 'easy') score = Math.random();
+                            else if (difficulty === 'normal') score += Math.random() * 5;
+                            else if (difficulty === 'hard') {
+                                const myColors = {};
+                                cpuHand.forEach(c => myColors[c.color] = (myColors[c.color] || 0) + 1);
+                                score += (myColors[card.color] || 0) * 5;
+                            }
+                            candidates.push({ slot, card, hIdx, score });
+                        }
+                    });
+                });
+                if (candidates.length === 0) {
+                    setPassed(p => ({ ...p, cpu: true }));
+                    setMessage("CPU PASS");
+                    setTimeout(() => setTurn('player'), 1500);
+                    return;
+                }
+                candidates.sort((a, b) => b.score - a.score);
+                const topN = difficulty === 'easy' ? candidates.length : (difficulty === 'normal' ? 3 : 1);
+                const choice = candidates[Math.floor(Math.random() * Math.min(topN, candidates.length))];
+                placeCard(choice.slot.r, choice.slot.c, choice.card, 'cpu', choice.hIdx);
+            };
+
+            const finishRound = () => {
+                setGameStatus('round_over');
+                const pPen = playerHand.length === 0 ? -2 : playerHand.length;
+                const cPen = cpuHand.length === 0 ? -2 : cpuHand.length;
+                const nextP = Math.max(0, chips.player + pPen);
+                const nextC = Math.max(0, chips.cpu + cPen);
+                setChips({ player: nextP, cpu: nextC });
+
+                if (nextP >= LOSE_THRESHOLD || nextC >= LOSE_THRESHOLD) {
+                    setTimeout(() => {
+                        let res = 'draw';
+                        if (nextP < nextC) res = 'win'; else if (nextP > nextC) res = 'loss';
+                        setFinalResult(res);
+                        saveGameResult(difficulty, res);
+                        setGameStatus('game_over');
+                        if (res === 'win') triggerConfetti();
+                    }, 1500);
+                }
+            };
+
+            const ChipView = ({ count, label, isDanger }) => (
+                <div className={`flex flex-col items-center px-4 py-1 rounded-lg ${isDanger ? 'bg-red-900/40 border border-red-500' : ''}`}>
+                    <div className="text-xs text-slate-400 font-bold mb-1">{label}</div>
+                    <div className="text-2xl font-black flex items-baseline gap-1">
+                        {count} <span className="text-xs font-normal opacity-50">/ {LOSE_THRESHOLD}</span>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="flex flex-col items-center h-full relative">
+                    <div className="w-full flex justify-between items-center p-3 bg-slate-900 shadow-lg z-30">
+                        <div className="font-bold flex items-center gap-2">
+                            <span className="text-xl">🐧</span>
+                            <span className={`text-xs border px-2 py-0.5 rounded ${DIFFICULTIES[difficulty].color} border-current tracking-wider`}>{DIFFICULTIES[difficulty].label}</span>
+                        </div>
+                        <div className="flex gap-2">
+                            <ChipView count={chips.player} label="YOU" isDanger={chips.player >= LOSE_THRESHOLD - 2} />
+                            <ChipView count={chips.cpu} label="CPU" isDanger={chips.cpu >= LOSE_THRESHOLD - 2} />
+                        </div>
+                        <button onClick={onExit} className="text-xs bg-slate-700 px-3 py-1 rounded hover:bg-slate-600 text-slate-300">EXIT</button>
+                    </div>
+
+                    <div className="flex-1 w-full flex flex-col justify-center items-center pb-32 overflow-y-auto relative bg-slate-800/50">
+                        {gameStatus === 'intro' && (
+                            <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
+                                <div className="text-6xl font-black text-white drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)] animate-text-pop tracking-widest text-center">
+                                    <span className="block text-2xl text-cyan-400 mb-2">ROUND {roundCount}</span>
+                                    START
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="mb-6 flex flex-col items-center">
+                            <div className="flex gap-1 h-8 sm:h-10">
+                                {cpuHand.map((_, i) => <div key={i} className="w-5 h-8 sm:w-6 sm:h-10 rounded border border-slate-500 cpu-card"></div>)}
+                            </div>
+                            <div className="text-xs mt-1 text-slate-400 h-4 font-bold tracking-widest">
+                                {passed.cpu ? <span className="text-red-400">PASS</span> : (turn === 'cpu' && gameStatus === 'playing' && 'THINKING...')}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col items-center mb-4 scale-90 sm:scale-100 origin-center transition-opacity duration-500" style={{ opacity: gameStatus === 'intro' ? 0 : 1 }}>
+                            {pyramid.map((row, r) => (
+                                <div key={r} className="flex justify-center">
+                                    {row.map((card, c) => {
+                                        const isValid = validSlots.some(s => s.r === r && s.c === c);
+                                        return (
+                                            <div key={`${r}-${c}`} className="relative w-9 h-12 sm:w-14 sm:h-20 mx-0.5 grid-cell">
+                                                {card ? (
+                                                    <div className={`w-full h-full rounded border-2 border-white ${COLORS[card.color].bg} card-shadow flex items-center justify-center animate-bounce-in`}>
+                                                        <span className="text-xl sm:text-2xl drop-shadow">🐧</span>
+                                                        <span className="absolute bottom-1 right-1 text-xs sm:text-sm opacity-50">{COLORS[card.color].icon}</span>
+                                                    </div>
+                                                ) : (
+                                                    (isValid && turn === 'player' && gameStatus === 'playing') ? (
+                                                        <div onClick={() => handlePlayerClick(r, c)} className="w-full h-full rounded cursor-pointer valid-zone flex items-center justify-center text-xs text-slate-300">PUSH</div>
+                                                    ) : <div className="w-full h-full opacity-0"></div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ))}
+                        </div>
+                        <div className="h-6 text-yellow-400 font-bold drop-shadow-md tracking-widest">{message}</div>
+
+                        {gameStatus === 'round_over' && (
+                            <div className="absolute inset-0 bg-slate-900/90 z-40 flex items-center justify-center animate-bounce-in">
+                                <div className="text-center">
+                                    <h2 className="text-2xl font-bold mb-8 tracking-widest text-slate-300">ROUND RESULT</h2>
+                                    <div className="flex gap-12 justify-center mb-10">
+                                        <div><div className="text-xs text-slate-400 font-bold mb-1">YOU</div><div className="text-4xl font-black text-red-400">+{Math.max(0, playerHand.length === 0 ? -2 : playerHand.length)}</div></div>
+                                        <div><div className="text-xs text-slate-400 font-bold mb-1">CPU</div><div className="text-4xl font-black text-red-400">+{Math.max(0, cpuHand.length === 0 ? -2 : cpuHand.length)}</div></div>
+                                    </div>
+                                    <button onClick={() => { setRoundCount(p => p + 1); startRound(roundCount + 1); }} className="bg-cyan-600 px-8 py-3 rounded-lg font-bold hover:scale-105 transition shadow-lg text-white tracking-widest">NEXT ROUND</button>
+                                </div>
+                            </div>
+                        )}
+                        {gameStatus === 'game_over' && (
+                            <div className="absolute inset-0 bg-slate-900/95 z-50 flex items-center justify-center animate-bounce-in">
+                                <div className="bg-slate-800 p-8 rounded-2xl border-2 border-cyan-500 shadow-2xl text-center max-w-sm w-full">
+                                    <h2 className="text-4xl font-black mb-2 text-white italic">{finalResult === 'win' ? 'VICTORY' : (finalResult === 'loss' ? 'DEFEAT' : 'DRAW')}</h2>
+                                    <div className="w-16 h-1 bg-cyan-500 mx-auto mb-6"></div>
+                                    <div className="flex justify-between px-8 mb-8 font-bold text-xl">
+                                        <div className="text-center"><div>YOU</div><div className="text-3xl text-cyan-400">{chips.player}</div></div>
+                                        <div className="text-center"><div>CPU</div><div className="text-3xl text-cyan-400">{chips.cpu}</div></div>
+                                    </div>
+                                    <button onClick={onExit} className="w-full bg-slate-700 hover:bg-slate-600 py-3 rounded-lg font-bold text-slate-200">TITLE</button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className={`fixed bottom-0 w-full bg-slate-900 p-3 border-t border-slate-700 transition-all duration-300 z-50 ${(turn !== 'player' || gameStatus !== 'playing') ? 'translate-y-2 opacity-90 grayscale' : ''}`}>
+                        <div className="flex flex-wrap gap-2 justify-center max-w-3xl mx-auto h-20 items-center">
+                            {playerHand.map((card, idx) => {
+                                if (idx >= dealtCount) return null;
+                                return (
+                                    <div key={card.id} onClick={() => turn === 'player' && gameStatus === 'playing' && setSelectedCardIndex(idx)}
+                                        className={`
+                                            relative w-10 h-14 sm:w-12 sm:h-16 rounded cursor-pointer border-2 border-white ${COLORS[card.color].bg} card-shadow 
+                                            ${selectedCardIndex === idx ? 'selected' : 'hover:-translate-y-2'}
+                                            animate-slide-up flex items-center justify-center
+                                        `}
+                                        style={{ transition: 'transform 0.1s' }}
+                                    >
+                                        <span className="text-white drop-shadow-md text-lg">{COLORS[card.color].icon}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>
