@@ -37,9 +37,7 @@
             animation: pulse 1.5s infinite;
         }
 
-        .cpu-card {
-            background: repeating-linear-gradient(45deg, #475569, #475569 10px, #334155 10px, #334155 20px);
-        }
+
 
         .title-logo {
             text-shadow: 0px 0px 20px rgba(34, 211, 238, 0.2);
@@ -297,10 +295,63 @@
             }, 250);
         };
 
+        // --- Common Components ---
+        const Card = ({ color, className = "" }) => (
+            <div className={`w-8 h-10 sm:w-10 sm:h-12 rounded border-2 border-white flex items-center justify-center ${COLORS[color].bg} shadow-sm ${className}`}>
+                <span className="text-white drop-shadow-md text-sm font-bold">{COLORS[color].icon}</span>
+            </div>
+        );
+
+        const Button = ({ onClick, children, className = "", ...props }) => {
+            const baseStyle = "font-bold py-3 px-6 rounded-lg shadow-lg hover:scale-105 transition tracking-widest";
+            return (
+                <button onClick={onClick} className={`${baseStyle} ${className}`} {...props}>
+                    {children}
+                </button>
+            );
+        };
+
+        const ChipView = ({ count, label, isDanger, isActive, handCount, isCpu, isPassed }) => (
+            <div className={`relative transition-all duration-300 rounded-lg p-0.5 ${isActive ? 'bg-gradient-to-r from-yellow-300 to-yellow-500 shadow-[0_0_15px_rgba(253,224,71,0.5)] scale-105' : 'bg-transparent'}`}>
+                {/* Thinking Bubble for CPU */}
+                {isActive && isCpu && <div className="absolute -top-3 -right-3 animate-float ThinkingBubble text-xs">💭</div>}
+
+                <div className={`flex flex-col items-center px-3 py-1.5 rounded-lg min-w-[7rem] ${isDanger ? 'bg-red-900/40 border border-red-500' : (isActive ? 'bg-slate-800' : 'bg-slate-900/50')}`}>
+                    <div className={`text-xs font-bold mb-1 tracking-wider ${isActive ? 'text-yellow-400' : 'text-slate-400'}`}>{isActive ? 'TURN' : label}</div>
+
+                    <div className="flex gap-4 items-center justify-center w-full">
+                        {/* Life / Chips */}
+                        <div className="flex flex-col items-center">
+                            <div className="text-[10px] text-slate-500 font-bold uppercase">PTS</div>
+                            <div className="text-xl font-black flex items-baseline gap-0.5">
+                                <span className="text-cyan-400">{count}</span>
+                                <span className="text-[10px] font-normal opacity-40">/{LOSE_THRESHOLD}</span>
+                            </div>
+                        </div>
+
+                        <div className="w-px h-6 bg-slate-700"></div>
+
+                        {/* Hand Count */}
+                        <div className="flex flex-col items-center">
+                            <div className="text-[10px] text-slate-500 font-bold uppercase">Hand</div>
+                            <div className="text-xl font-black text-white flex items-center gap-1">
+                                {handCount}
+                                <span className="text-[10px]">🃏</span>
+                            </div>
+                        </div>
+                    </div>
+                    {/* Pass Indicator Overlay */}
+                    {isPassed && (
+                        <div className="absolute inset-0 bg-slate-900/90 flex items-center justify-center rounded-lg border-2 border-red-500 text-red-500 font-bold tracking-widest text-sm animate-bounce-in">PASS</div>
+                    )}
+                </div>
+            </div>
+        );
+
         // --- Components ---
         function App() {
             const [view, setView] = useState('title');
-            const [selectedDifficulty, setSelectedDifficulty] = useState('normal');
+            const [selectedDifficulty, setSelectedDifficulty] = useState('easy');
 
             const startGame = (diff) => {
                 setSelectedDifficulty(diff);
@@ -309,15 +360,16 @@
 
             return (
                 <div className="w-full h-[100dvh] flex flex-col font-sans overflow-hidden">
-                    {view === 'title' && <TitleScreen onStart={() => setView('difficulty')} onStats={() => setView('stats')} />}
+                    {view === 'title' && <TitleScreen onStart={() => setView('difficulty')} onStats={() => setView('stats')} onRules={() => setView('rules')} />}
                     {view === 'difficulty' && <DifficultySelect onSelect={startGame} onBack={() => setView('title')} />}
                     {view === 'stats' && <StatsScreen onBack={() => setView('title')} />}
+                    {view === 'rules' && <RulesScreen onBack={() => setView('title')} />}
                     {view === 'game' && <GameSession difficulty={selectedDifficulty} onExit={() => setView('title')} />}
                 </div>
             );
         }
 
-        function TitleScreen({ onStart, onStats }) {
+        function TitleScreen({ onStart, onStats, onRules }) {
             return (
                 <div className="flex flex-col items-center justify-center h-full animate-bounce-in">
                     <div className="text-6xl sm:text-8xl mb-6 opacity-90">🐧</div>
@@ -326,8 +378,9 @@
                     </h1>
 
                     <div className="flex flex-col gap-4 w-64">
-                        <button onClick={onStart} className="bg-cyan-700 hover:bg-cyan-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:scale-105 transition tracking-widest">START</button>
-                        <button onClick={onStats} className="bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-3 px-6 rounded-lg shadow-lg hover:scale-105 transition tracking-widest">STATS</button>
+                        <Button onClick={onStart} className="bg-cyan-700 hover:bg-cyan-600 text-white">START</Button>
+                        <Button onClick={onStats} className="bg-slate-700 hover:bg-slate-600 text-slate-200">STATS</Button>
+                        <Button onClick={onRules} className="bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-sm">HOW TO PLAY</Button>
                     </div>
                     <div className="absolute bottom-4 text-slate-600 text-xs font-mono">v1.0.0</div>
                 </div>
@@ -340,13 +393,13 @@
                     <h2 className="text-2xl font-bold mb-8 text-white tracking-wider">SELECT DIFFICULTY</h2>
                     <div className="flex flex-col gap-4 w-full max-w-sm px-4">
                         {Object.entries(DIFFICULTIES).map(([key, config]) => (
-                            <button key={key} onClick={() => onSelect(key)} className="group bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 hover:border-cyan-400 p-4 rounded-xl transition-all text-left flex items-center justify-between">
-                                <div><div className={`font-bold text-xl ${config.color}`}>{config.label}</div><div className="text-slate-400 text-xs">{config.desc}</div></div>
+                            <button key={key} onClick={() => onSelect(key)} className="group bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 hover:border-cyan-400 p-4 rounded-lg shadow-lg hover:shadow-cyan-500/20 transition-all text-left flex items-center justify-between">
+                                <div><div className={`font-bold text-xl tracking-widest ${config.color}`}>{config.label}</div><div className="text-slate-400 text-xs">{config.desc}</div></div>
                                 <div className="text-2xl opacity-0 group-hover:opacity-100 transition-opacity text-cyan-400">▶</div>
                             </button>
                         ))}
                     </div>
-                    <button onClick={onBack} className="mt-8 text-slate-400 hover:text-white underline">BACK</button>
+                    <Button onClick={onBack} className="mt-8 bg-slate-700 hover:bg-slate-600 text-slate-200">BACK</Button>
                 </div>
             );
         }
@@ -375,14 +428,86 @@
                         })}
                     </div>
                     <div className="flex gap-4 mt-8">
-                        <button onClick={onBack} className="bg-slate-600 px-6 py-2 rounded text-white hover:bg-slate-500">BACK</button>
-                        <button onClick={handleReset} className="bg-red-900/30 text-red-300 px-4 py-2 rounded text-xs border border-red-900 hover:bg-red-900/50">RESET</button>
+                        <Button onClick={onBack} className="bg-slate-700 hover:bg-slate-600 text-slate-200">BACK</Button>
+                        <Button onClick={handleReset} className="bg-red-800 hover:bg-red-700 text-red-100">RESET</Button>
                     </div>
                 </div>
             );
         }
 
-        // --- GameSession ---
+        function RulesScreen({ onBack }) {
+            return (
+                <div className="flex flex-col items-center h-full animate-bounce-in p-4 overflow-y-auto w-full">
+                    <div className="my-auto flex flex-col items-center w-full max-w-lg">
+                        <h2 className="text-3xl font-bold mb-6 text-white tracking-widest flex-shrink-0">遊び方</h2>
+                        <div className="bg-slate-800 p-6 rounded-xl shadow-xl w-full border border-slate-700 space-y-6">
+
+                            {/* Rule 1: Basics */}
+                            <div className="flex gap-4 items-start">
+                                <div className="bg-slate-700 w-8 h-8 rounded-full flex items-center justify-center font-bold text-cyan-400 shrink-0">1</div>
+                                <div>
+                                    <h3 className="font-bold text-white mb-1">ピラミッドを作る</h3>
+                                    <p className="text-sm text-slate-400">カードを配置してピラミッドを作っていきます。<span className="text-white font-bold">手札を全て使い切ること</span>を目指します。</p>
+                                    <p className="text-xs text-cyan-400 mt-1">※ 全て使い切ると<span className="font-bold">PTSが -2</span> されます（ボーナス）。</p>
+                                </div>
+                            </div>
+
+                            {/* Rule 2: Base Row (New) */}
+                            <div className="flex gap-4 items-start">
+                                <div className="bg-slate-700 w-8 h-8 rounded-full flex items-center justify-center font-bold text-cyan-400 shrink-0">2</div>
+                                <div>
+                                    <h3 className="font-bold text-white mb-1">土台のルール</h3>
+                                    <p className="text-sm text-slate-400">一番下の段（土台）は<span className="text-white font-bold">7枚まで</span>置くことができます。ここには<span className="text-yellow-400">好きな色</span>を置けます。</p>
+                                </div>
+                            </div>
+
+                            {/* Rule 3: Matching */}
+                            <div className="flex gap-4 items-start">
+                                <div className="bg-slate-700 w-8 h-8 rounded-full flex items-center justify-center font-bold text-cyan-400 shrink-0">3</div>
+                                <div className="w-full">
+                                    <h3 className="font-bold text-white mb-2">色を合わせる</h3>
+                                    <div className="bg-slate-900/50 p-3 rounded-lg flex items-center justify-center gap-4 mb-2">
+                                        <div className="flex flex-col items-center gap-1">
+                                            <div className="flex gap-1">
+                                                <Card color="Red" />
+                                                <Card color="Blue" />
+                                            </div>
+                                            <span className="text-[10px] text-slate-500">下の2枚</span>
+                                        </div>
+                                        <div className="text-slate-500">➜</div>
+                                        <div className="flex gap-4">
+                                            <div className="relative flex flex-col items-center">
+                                                <Card color="Red" className="mb-1" />
+                                                <div className="text-[10px] text-green-400 font-bold">OK</div>
+                                                <span className="text-[8px] text-slate-500">(赤と一致)</span>
+                                            </div>
+                                            <div className="relative flex flex-col items-center">
+                                                <Card color="Yellow" className="opacity-50 mb-1" />
+                                                <div className="text-[10px] text-red-500 font-bold">NG</div>
+                                                <span className="text-[8px] text-slate-500">(一致なし)</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-slate-400">下に並んだ2枚のカードの<span className="text-cyan-400">「どちらかの色」</span>と同じなら置くことができます。</p>
+                                </div>
+                            </div>
+
+                            {/* Rule 4: Pass */}
+                            <div className="flex gap-4 items-start">
+                                <div className="bg-slate-700 w-8 h-8 rounded-full flex items-center justify-center font-bold text-cyan-400 shrink-0">4</div>
+                                <div>
+                                    <h3 className="font-bold text-white mb-1">パスとペナルティ</h3>
+                                    <p className="text-sm text-slate-400 mb-1">出せるカードがない時は<span className="text-red-400 font-bold">PASS</span>になり、ペナルティとして<span className="text-white font-bold">PTS</span>（チップ）が<span className="text-red-400">増えます</span>。</p>
+                                    <p className="text-sm font-bold text-red-500 bg-red-900/20 px-2 py-1 rounded inline-block">PTSが 10 になると負けです。</p>
+                                </div>
+                            </div>
+
+                        </div>
+                        <Button onClick={onBack} className="mt-8 bg-slate-700 hover:bg-slate-600 text-slate-200 flex-shrink-0">BACK</Button>
+                    </div>
+                </div>
+            );
+        }
         function GameSession({ difficulty, onExit }) {
             const [chips, setChips] = useState({ player: 0, cpu: 0 });
             const [roundCount, setRoundCount] = useState(1);
@@ -536,7 +661,7 @@
 
             const triggerPlaceEffect = (r, c, color) => {
                 const colorMap = {
-                    Red: '#ef4444', Blue: '#3b82f6', Yellow: '#eab308', Purple: '#a855f7'
+                    Green: '#22c55e', Red: '#ef4444', Blue: '#3b82f6', Yellow: '#eab308', Purple: '#a855f7'
                 };
                 // 簡易的な位置計算 (画面中央付近を基準に少し散らす)
                 // 本来はelementの位置を取得すべきだが、React内での簡易実装として中央から少しずらす
@@ -632,42 +757,7 @@
                 }
             };
 
-            const ChipView = ({ count, label, isDanger, isActive, handCount, isCpu, isPassed }) => (
-                <div className={`relative transition-all duration-300 rounded-lg p-0.5 ${isActive ? 'bg-gradient-to-r from-yellow-300 to-yellow-500 shadow-[0_0_15px_rgba(253,224,71,0.5)] scale-105' : 'bg-transparent'}`}>
-                    {/* Thinking Bubble for CPU */}
-                    {isActive && isCpu && <div className="absolute -top-3 -right-3 animate-float ThinkingBubble text-xs">💭</div>}
 
-                    <div className={`flex flex-col items-center px-3 py-1.5 rounded-lg min-w-[7rem] ${isDanger ? 'bg-red-900/40 border border-red-500' : (isActive ? 'bg-slate-800' : 'bg-slate-900/50')}`}>
-                        <div className={`text-xs font-bold mb-1 tracking-wider ${isActive ? 'text-yellow-400' : 'text-slate-400'}`}>{isActive ? 'TURN' : label}</div>
-
-                        <div className="flex gap-4 items-center justify-center w-full">
-                            {/* Life / Chips */}
-                            <div className="flex flex-col items-center">
-                                <div className="text-[10px] text-slate-500 font-bold uppercase">PTS</div>
-                                <div className="text-xl font-black flex items-baseline gap-0.5">
-                                    <span className="text-cyan-400">{count}</span>
-                                    <span className="text-[10px] font-normal opacity-40">/{LOSE_THRESHOLD}</span>
-                                </div>
-                            </div>
-
-                            <div className="w-px h-6 bg-slate-700"></div>
-
-                            {/* Hand Count */}
-                            <div className="flex flex-col items-center">
-                                <div className="text-[10px] text-slate-500 font-bold uppercase">Hand</div>
-                                <div className="text-xl font-black text-white flex items-center gap-1">
-                                    {handCount}
-                                    <span className="text-[10px]">🃏</span>
-                                </div>
-                            </div>
-                        </div>
-                        {/* Pass Indicator Overlay */}
-                        {isPassed && (
-                            <div className="absolute inset-0 bg-slate-900/90 flex items-center justify-center rounded-lg border-2 border-red-500 text-red-500 font-bold tracking-widest text-sm animate-bounce-in">PASS</div>
-                        )}
-                    </div>
-                </div>
-            );
             return (
                 <div className="flex flex-col items-center h-full relative bg-slate-900 text-white">
                     <div className="max-w-4xl w-full mx-auto relative flex flex-col h-full overflow-hidden shadow-2xl">
@@ -682,7 +772,7 @@
                             />
                             <div className="text-center flex flex-col items-center">
                                 <div className="text-xs font-bold text-slate-500 mt-1 tracking-widest">ROUND {roundCount}</div>
-                                <button onClick={onExit} className="text-[10px] text-slate-600 hover:text-red-400 font-bold tracking-widest mt-1 border border-transparent hover:border-red-400/30 rounded px-2 transition-all">EXIT</button>
+                                <button onClick={onExit} className="text-[10px] text-slate-600 hover:text-red-400 font-bold tracking-widest mt-1 border border-transparent hover:border-red-400/30 rounded-md px-2 transition-all">EXIT</button>
                             </div>
                             <ChipView
                                 count={chips.cpu}
@@ -760,7 +850,7 @@
                                             <div><div className="text-xs text-slate-400 font-bold mb-1">YOU</div><div className="text-4xl font-black text-red-400">+{Math.max(0, playerHand.length === 0 ? -2 : playerHand.length)}</div></div>
                                             <div><div className="text-xs text-slate-400 font-bold mb-1">CPU</div><div className="text-4xl font-black text-red-400">+{Math.max(0, cpuHand.length === 0 ? -2 : cpuHand.length)}</div></div>
                                         </div>
-                                        <button onClick={() => { setRoundCount(p => p + 1); startRound(roundCount + 1); }} className="bg-cyan-600 px-8 py-3 rounded-lg font-bold hover:scale-105 transition shadow-lg text-white tracking-widest">NEXT ROUND</button>
+                                        <Button onClick={() => { setRoundCount(p => p + 1); startRound(roundCount + 1); }} className="bg-cyan-600 hover:bg-cyan-500 text-white px-8">NEXT ROUND</Button>
                                     </div>
                                 </div>
                             )}
@@ -774,13 +864,13 @@
                                             <div className="text-center"><div>YOU</div><div className="text-3xl text-cyan-400">{chips.player}</div></div>
                                             <div className="text-center"><div>CPU</div><div className="text-3xl text-cyan-400">{chips.cpu}</div></div>
                                         </div>
-                                        <button onClick={onExit} className="w-full bg-slate-700 hover:bg-slate-600 py-3 rounded-lg font-bold text-slate-200">TITLE</button>
+                                        <Button onClick={onExit} className="w-full bg-slate-700 hover:bg-slate-600 text-slate-200">TITLE</Button>
                                     </div>
                                 </div>
                             )}
                         </div>
 
-                        <div className={`w-full bg-slate-900 p-3 border-t border-slate-700 transition-all duration-300 z-50 pb-[env(safe-area-inset-bottom)] ${(turn !== 'player' || gameStatus !== 'playing') ? 'translate-y-2 opacity-90 grayscale' : ''}`}>
+                        <div className={`w-full bg-slate-900 p-3 border-t border-slate-700 transition-all duration-300 z-50 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] ${(turn !== 'player' || gameStatus !== 'playing') ? 'translate-y-2 opacity-90 grayscale' : ''}`}>
                             <div className="grid grid-cols-7 gap-2 justify-items-center max-w-lg mx-auto min-h-[7rem]">
                                 {playerHand.map((card, idx) => {
                                     if (idx >= dealtCount) return null;
