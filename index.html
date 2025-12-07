@@ -522,6 +522,7 @@
             const [message, setMessage] = useState("");
             const [perfectTarget, setPerfectTarget] = useState(null); // 'player' | 'cpu' | null
             const [validSlots, setValidSlots] = useState([]);
+            const [cameraOffset, setCameraOffset] = useState(0); // number of units to shift
             const initialized = useRef(false);
 
             useEffect(() => {
@@ -530,6 +531,41 @@
                     initialized.current = true;
                 }
             }, []);
+
+            // --- Camera Centering Logic ---
+            useEffect(() => {
+                if (pyramid.length === 0) return;
+                const baseRow = pyramid[BASE_ROW_INDEX];
+                // Find visible range in the bottom row (including cards and valid slots)
+                // We want to center the "action", so existing cards + potential moves in the bottom row
+                // However, user asked for "placed cards". Let's stick to placed cards for stability first,
+                // perhaps including the very first valid slot if empty.
+
+                const occupiedIndices = baseRow.map((c, i) => c !== null ? i : -1).filter(i => i !== -1);
+
+                let targetCenter = 6; // Default to center of grid (index 6)
+
+                if (occupiedIndices.length > 0) {
+                    const minIdx = Math.min(...occupiedIndices);
+                    const maxIdx = Math.max(...occupiedIndices);
+                    targetCenter = (minIdx + maxIdx) / 2;
+                } else if (validSlots.length > 0) {
+                    // If no cards, maybe center on the valid slots (initial state)
+                    const baseSlots = validSlots.filter(s => s.r === BASE_ROW_INDEX);
+                    if (baseSlots.length > 0) {
+                        // usually just one at 6 initially
+                        const sMin = Math.min(...baseSlots.map(s => s.c));
+                        const sMax = Math.max(...baseSlots.map(s => s.c));
+                        targetCenter = (sMin + sMax) / 2;
+                    }
+                }
+
+                // Calculate offset: (Physical Center 6 - Target Center)
+                // If Target is 5 (left), we need (6 - 5) = +1 unit shift (move right)
+                const offset = 6 - targetCenter;
+                setCameraOffset(offset);
+
+            }, [pyramid, validSlots]);
 
             useEffect(() => {
                 if (gameStatus === 'dealing') {
@@ -805,7 +841,21 @@
 
                             {/* Removed CPU hand display */}
 
-                            <div className="flex-1 w-full flex flex-col justify-center items-center mb-1 scale-90 sm:scale-100 origin-center transition-opacity duration-500" style={{ opacity: gameStatus === 'intro' ? 0 : 1 }}>
+                            <div
+                                className="pyramid-container flex-1 w-full flex flex-col justify-center items-center mb-1 scale-90 sm:scale-100 origin-center transition-all duration-500 ease-in-out transform"
+                                style={{
+                                    opacity: gameStatus === 'intro' ? 0 : 1,
+                                    '--tw-translate-x': `calc(${cameraOffset} * var(--card-unit-width, 2.5rem))`,
+                                    '--card-unit-width': '2.5rem' // Default (mobile)
+                                }}
+                            >
+                                {/* Media query handling for unit width override */}
+                                <style>{`
+                                    @media (min-width: 640px) {
+                                        .pyramid-container { --card-unit-width: 3.75rem !important; }
+                                    }
+                                `}</style>
+
                                 {pyramid.map((row, r) => (
                                     <div key={r} className="flex justify-center">
                                         {row.map((card, c) => {
