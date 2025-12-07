@@ -892,11 +892,11 @@
                             {/* Removed CPU hand display */}
 
                             <div
-                                className="pyramid-container flex-1 w-full flex flex-col justify-center items-center mb-1 scale-90 sm:scale-100 origin-center transition-all duration-500 ease-in-out transform"
+                                className="pyramid-container flex-1 w-full flex flex-col justify-end sm:justify-center items-center pb-4 sm:pb-0 scale-100 origin-bottom transition-all duration-500 ease-in-out transform"
                                 style={{
                                     opacity: gameStatus === 'intro' ? 0 : 1,
-                                    '--tw-translate-x': `calc(${cameraOffset} * var(--card-unit-width, 2.5rem))`,
-                                    '--card-unit-width': '2.5rem' // Default (mobile)
+                                    '--tw-translate-x': `calc(${cameraOffset} * var(--card-unit-width, 2.75rem))`,
+                                    '--card-unit-width': '2.75rem' // Mobile: w-10 (2.5rem) + gap (0.25rem)
                                 }}
                             >
                                 {/* Media query handling for unit width override */}
@@ -915,7 +915,7 @@
                                             const canPlaceSelected = isGuideActive ? (isValid && isColorMatch(r, c, playerHand[selectedCardIndex].color)) : isValid;
 
                                             return (
-                                                <div key={`${r}-${c}`} className="relative w-9 h-12 sm:w-14 sm:h-20 mx-0.5 grid-cell">
+                                                <div key={`${r}-${c}`} className="relative w-10 h-[3.25rem] sm:w-14 sm:h-20 mx-0.5 grid-cell">
                                                     {card ? (
                                                         <div className={`w-full h-full rounded border-2 border-white ${COLORS[card.color].bg} card-shadow flex items-center justify-center animate-pop-in`}>
                                                             <span className="text-xl sm:text-2xl drop-shadow">🐧</span>
