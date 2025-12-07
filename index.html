@@ -123,8 +123,79 @@
             animation: text-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
 
-        .animate-fade-out {
-            animation: fade-out 0.5s ease-out 1s forwards;
+        @keyframes pop-in {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+
+            70% {
+                transform: scale(1.1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes wave {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-3px);
+            }
+        }
+
+        .animate-pop-in {
+            animation: pop-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .animate-wave {
+            animation: wave 1.5s ease-in-out infinite;
+        }
+
+        .animate-float {
+            animation: float 2s ease-in-out infinite;
+        }
+
+        .ThinkingBubble {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            padding: 2px 8px;
+            color: black;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            z-index: 20;
+        }
+
+        .ThinkingBubble::before {
+            content: "";
+            position: absolute;
+            bottom: -4px;
+            left: 10px;
+            border-width: 6px 6px 0;
+            border-style: solid;
+            border-color: white transparent;
         }
 
         .grid-cell {
@@ -424,11 +495,33 @@
                 return hand.some(card => slots.some(slot => isColorMatch(slot.r, slot.c, card.color)));
             };
 
+            const triggerPlaceEffect = (r, c, color) => {
+                const colorMap = {
+                    Red: '#ef4444', Blue: '#3b82f6', Yellow: '#eab308', Purple: '#a855f7'
+                };
+                // 簡易的な位置計算 (画面中央付近を基準に少し散らす)
+                // 本来はelementの位置を取得すべきだが、React内での簡易実装として中央から少しずらす
+                const yPos = r / 7; // 上の方ほど0に近い
+                const xPos = 0.5; // 中央
+
+                confetti({
+                    particleCount: 20,
+                    spread: 50,
+                    origin: { y: 0.3 + (yPos * 0.4), x: 0.5 },
+                    colors: [colorMap[color]],
+                    gravity: 1.2,
+                    scalar: 0.8,
+                    shapes: ['circle']
+                });
+            };
+
             const placeCard = (r, c, card, who, handIndex) => {
                 const newPyramid = [...pyramid];
                 newPyramid[r] = [...newPyramid[r]];
                 newPyramid[r][c] = card;
                 setPyramid(newPyramid);
+                triggerPlaceEffect(r, c, card.color);
+
                 if (who === 'player') {
                     const newHand = playerHand.filter((_, i) => i !== handIndex);
                     setPlayerHand(newHand);
@@ -534,12 +627,17 @@
                             </div>
                         )}
 
-                        <div className="mb-1 flex flex-col items-center">
+                        <div className="mb-1 flex flex-col items-center relative min-h-[4rem] justify-end">
+                            {turn === 'cpu' && gameStatus === 'playing' && (
+                                <div className="absolute top-0 right-10 animate-float ThinkingBubble">💭</div>
+                            )}
                             <div className="flex gap-1 h-8 sm:h-10">
-                                {cpuHand.map((_, i) => <div key={i} className="w-5 h-8 sm:w-6 sm:h-10 rounded border border-slate-500 cpu-card"></div>)}
+                                {cpuHand.map((_, i) => (
+                                    <div key={i} className={`w-5 h-8 sm:w-6 sm:h-10 rounded border border-slate-500 cpu-card ${turn === 'cpu' ? 'animate-wave' : ''}`} style={{ animationDelay: `${i * 0.1}s` }}></div>
+                                ))}
                             </div>
-                            <div className="text-xs mt-1 text-slate-400 h-4 font-bold tracking-widest">
-                                {passed.cpu ? <span className="text-red-400">PASS</span> : (turn === 'cpu' && gameStatus === 'playing' && 'THINKING...')}
+                            <div className="text-xs mt-0.5 text-slate-400 h-4 font-bold tracking-widest">
+                                {passed.cpu ? <span className="text-red-400">PASS</span> : ''}
                             </div>
                         </div>
 
@@ -551,7 +649,7 @@
                                         return (
                                             <div key={`${r}-${c}`} className="relative w-9 h-12 sm:w-14 sm:h-20 mx-0.5 grid-cell">
                                                 {card ? (
-                                                    <div className={`w-full h-full rounded border-2 border-white ${COLORS[card.color].bg} card-shadow flex items-center justify-center animate-bounce-in`}>
+                                                    <div className={`w-full h-full rounded border-2 border-white ${COLORS[card.color].bg} card-shadow flex items-center justify-center animate-pop-in`}>
                                                         <span className="text-xl sm:text-2xl drop-shadow">🐧</span>
                                                         <span className="absolute bottom-1 right-1 text-xs sm:text-sm opacity-50">{COLORS[card.color].icon}</span>
                                                     </div>
