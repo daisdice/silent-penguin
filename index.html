@@ -217,7 +217,7 @@
             };
 
             return (
-                <div className="w-full h-screen flex flex-col font-sans">
+                <div className="w-full h-[100dvh] flex flex-col font-sans overflow-hidden">
                     {view === 'title' && <TitleScreen onStart={() => setView('difficulty')} onStats={() => setView('stats')} />}
                     {view === 'difficulty' && <DifficultySelect onSelect={startGame} onBack={() => setView('title')} />}
                     {view === 'stats' && <StatsScreen onBack={() => setView('title')} />}
@@ -512,7 +512,7 @@
                         <button onClick={onExit} className="text-xs bg-slate-700 px-3 py-1 rounded hover:bg-slate-600 text-slate-300">EXIT</button>
                     </div>
 
-                    <div className="flex-1 w-full flex flex-col justify-center items-center pb-32 overflow-y-auto relative bg-slate-800/50">
+                    <div className="flex-1 w-full flex flex-col justify-center items-center p-2 overflow-hidden relative bg-slate-800/50">
                         {gameStatus === 'intro' && (
                             <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
                                 <div className="text-6xl font-black text-white drop-shadow-[0_5px_5px_rgba(0,0,0,0.5)] animate-text-pop tracking-widest text-center">
@@ -522,7 +522,7 @@
                             </div>
                         )}
 
-                        <div className="mb-6 flex flex-col items-center">
+                        <div className="mb-2 flex flex-col items-center">
                             <div className="flex gap-1 h-8 sm:h-10">
                                 {cpuHand.map((_, i) => <div key={i} className="w-5 h-8 sm:w-6 sm:h-10 rounded border border-slate-500 cpu-card"></div>)}
                             </div>
@@ -531,7 +531,7 @@
                             </div>
                         </div>
 
-                        <div className="flex flex-col items-center mb-4 scale-90 sm:scale-100 origin-center transition-opacity duration-500" style={{ opacity: gameStatus === 'intro' ? 0 : 1 }}>
+                        <div className="flex flex-col items-center mb-2 scale-75 sm:scale-100 origin-center transition-opacity duration-500" style={{ opacity: gameStatus === 'intro' ? 0 : 1 }}>
                             {pyramid.map((row, r) => (
                                 <div key={r} className="flex justify-center">
                                     {row.map((card, c) => {
@@ -583,8 +583,8 @@
                         )}
                     </div>
 
-                    <div className={`fixed bottom-0 w-full bg-slate-900 p-3 border-t border-slate-700 transition-all duration-300 z-50 ${(turn !== 'player' || gameStatus !== 'playing') ? 'translate-y-2 opacity-90 grayscale' : ''}`}>
-                        <div className="flex flex-wrap gap-2 justify-center max-w-3xl mx-auto h-20 items-center">
+                    <div className={`w-full bg-slate-900 p-3 border-t border-slate-700 transition-all duration-300 z-50 pb-[env(safe-area-inset-bottom)] ${(turn !== 'player' || gameStatus !== 'playing') ? 'translate-y-2 opacity-90 grayscale' : ''}`}>
+                        <div className="flex flex-wrap gap-2 justify-center max-w-3xl mx-auto min-h-[7rem] items-center">
                             {playerHand.map((card, idx) => {
                                 if (idx >= dealtCount) return null;
                                 return (
