@@ -299,6 +299,7 @@
             const [turn, setTurn] = useState('player');
             const [passed, setPassed] = useState({ player: false, cpu: false });
             const [message, setMessage] = useState("");
+            const [perfectTarget, setPerfectTarget] = useState(null); // 'player' | 'cpu' | null
             const [validSlots, setValidSlots] = useState([]);
             const initialized = useRef(false);
 
@@ -320,6 +321,7 @@
                             const isPlayerStart = roundCount % 2 !== 0;
                             setTurn(isPlayerStart ? 'player' : 'cpu');
                             setMessage("");
+                            setPerfectTarget(null);
                         }, 500);
                     }
                 }
@@ -332,7 +334,15 @@
             useEffect(() => {
                 if (gameStatus !== 'playing') return;
                 if ((passed.player || playerHand.length === 0) && (passed.cpu || cpuHand.length === 0)) {
-                    finishRound();
+                    if (playerHand.length === 0) {
+                        setPerfectTarget('player');
+                        setTimeout(finishRound, 2000);
+                    } else if (cpuHand.length === 0) {
+                        setPerfectTarget('cpu');
+                        setTimeout(finishRound, 2000);
+                    } else {
+                        finishRound();
+                    }
                     return;
                 }
                 if (turn === 'player') {
@@ -557,6 +567,13 @@
                             ))}
                         </div>
                         <div className="h-6 text-yellow-400 font-bold drop-shadow-md tracking-widest mb-1">{message && message.includes('TURN') ? '' : message}</div>
+
+                        {perfectTarget && (
+                            <div className={`absolute z-50 pointer-events-none animate-bounce-in flex flex-col items-center justify-center ${perfectTarget === 'cpu' ? 'top-16' : 'bottom-20 left-0 right-0'}`}>
+                                <div className="text-4xl sm:text-6xl font-black text-yellow-300 drop-shadow-[0_0_10px_rgba(234,179,8,0.8)] tracking-widest stroke-black">PERFECT!</div>
+                                <div className="text-2xl sm:text-4xl font-bold text-red-500 bg-slate-900/80 px-4 rounded-full border-2 border-red-500 mt-2">-2 PTS</div>
+                            </div>
+                        )}
 
                         {gameStatus === 'round_over' && (
                             <div className="absolute inset-0 bg-slate-900/90 z-40 flex items-center justify-center animate-bounce-in">
