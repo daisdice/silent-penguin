@@ -692,7 +692,7 @@
                                                     </div>
                                                 ) : (
                                                     (canPlaceSelected && turn === 'player' && gameStatus === 'playing') ? (
-                                                        <div onClick={() => isGuideActive ? handlePlayerClick(r, c) : null} className={`w-full h-full rounded cursor-pointer valid-zone flex items-center justify-center text-xs text-slate-300 ${isGuideActive ? 'border-yellow-400 bg-yellow-400/20' : ''}`}>{isGuideActive ? 'HERE' : 'PUSH'}</div>
+                                                        <div onClick={() => isGuideActive ? handlePlayerClick(r, c) : null} className={`w-full h-full rounded cursor-pointer valid-zone flex items-center justify-center text-xs text-slate-300 ${isGuideActive ? 'border-yellow-400 bg-yellow-400/20' : ''}`}>{isGuideActive ? 'HERE' : ''}</div>
                                                     ) : <div className="w-full h-full opacity-0"></div>
                                                 )}
                                             </div>
