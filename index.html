@@ -321,27 +321,27 @@
 
         // --- Common Components ---
         const Card = ({ color, className = "" }) => (
-            <div className={`w-8 h-10 sm:w-10 sm:h-12 rounded border-2 border-white flex items-center justify-center ${COLORS[color].bg} shadow-sm ${className}`}>
-                <span className="text-white drop-shadow-md text-sm font-bold">{COLORS[color].icon}</span>
+            <div className={`w-8 h-10 sm:w-10 sm:h-12 rounded border-2 border-white flex items-center justify-center ${COLORS[color].bg} shadow-sm ${className} `}>
+                <span className="text-xl drop-shadow">🐧</span>
             </div>
         );
 
         const Button = ({ onClick, children, className = "", ...props }) => {
             const baseStyle = "font-bold py-3 px-6 rounded-lg shadow-lg hover:scale-105 transition tracking-widest";
             return (
-                <button onClick={onClick} className={`${baseStyle} ${className}`} {...props}>
+                <button onClick={onClick} className={`${baseStyle} ${className} `} {...props}>
                     {children}
                 </button>
             );
         };
 
         const ChipView = ({ count, label, isDanger, isActive, handCount, isCpu, isPassed }) => (
-            <div className={`relative transition-all duration-300 rounded-lg p-0.5 ${isActive ? 'bg-gradient-to-r from-yellow-300 to-yellow-500 shadow-[0_0_15px_rgba(253,224,71,0.5)] scale-105' : 'bg-transparent'}`}>
+            <div className={`relative transition-all duration-300 rounded-lg p-0.5 ${isActive ? 'bg-gradient-to-r from-yellow-300 to-yellow-500 shadow-[0_0_15px_rgba(253,224,71,0.5)] scale-105' : 'bg-transparent'} `}>
                 {/* Thinking Bubble for CPU */}
                 {isActive && isCpu && <div className="absolute -top-3 -right-3 animate-float ThinkingBubble text-xs">💭</div>}
 
-                <div className={`flex flex-col items-center px-3 py-1.5 rounded-lg min-w-[7rem] ${isDanger ? 'bg-red-900/40 border border-red-500' : (isActive ? 'bg-slate-800' : 'bg-slate-900/50')}`}>
-                    <div className={`text-xs font-bold mb-1 tracking-wider ${isActive ? 'text-yellow-400' : 'text-slate-400'}`}>{isActive ? 'TURN' : label}</div>
+                <div className={`flex flex-col items-center px-3 py-1.5 rounded-lg min-w-[7rem] ${isDanger ? 'bg-red-900/40 border border-red-500' : (isActive ? 'bg-slate-800' : 'bg-slate-900/50')} `}>
+                    <div className={`text-xs font-bold mb-1 tracking-wider ${isActive ? 'text-yellow-400' : 'text-slate-400'} `}>{isActive ? 'TURN' : label}</div>
 
                     <div className="flex gap-4 items-center justify-center w-full">
                         {/* Life / Chips */}
@@ -428,11 +428,12 @@
                                         group border-2 p-4 rounded-lg shadow-lg transition-all text-left flex items-center justify-between relative overflow-hidden
                                         ${isUnlocked
                                             ? 'bg-slate-800 hover:bg-slate-700 border-slate-600 hover:border-cyan-400 hover:shadow-cyan-500/20 cursor-pointer'
-                                            : 'bg-slate-900 border-slate-800 opacity-60 cursor-not-allowed grayscale'}
+                                            : 'bg-slate-900 border-slate-800 opacity-60 cursor-not-allowed grayscale'
+                                        }
                                     `}
                                 >
                                     <div>
-                                        <div className={`font-bold text-xl tracking-widest ${isUnlocked ? config.color : 'text-slate-500'}`}>{config.label}</div>
+                                        <div className={`font-bold text-xl tracking-widest ${isUnlocked ? config.color : 'text-slate-500'} `}>{config.label}</div>
                                         <div className="text-slate-400 text-xs">{config.desc}</div>
                                     </div>
 
@@ -466,9 +467,9 @@
                             const rate = total > 0 ? Math.round((wins / total) * 100) : 0;
                             return (
                                 <div key={key} className="grid grid-cols-5 gap-2 py-3 border-b border-slate-700 text-center items-center">
-                                    <div className={`text-left pl-2 font-bold ${config.color} text-sm`}>{config.label}</div>
+                                    <div className={`text - left pl - 2 font - bold ${config.color} text - sm`}>{config.label}</div>
                                     <div className="text-xl">{wins}</div><div className="text-xl">{losses}</div><div className="text-slate-500">{draws}</div>
-                                    <div className={`font-bold ${rate >= 50 ? 'text-cyan-400' : 'text-slate-500'}`}>{rate}%</div>
+                                    <div className={`font - bold ${rate >= 50 ? 'text-cyan-400' : 'text-slate-500'} `}>{rate}%</div>
                                 </div>
                             );
                         })}
@@ -901,10 +902,10 @@
                             >
                                 {/* Media query handling for unit width override */}
                                 <style>{`
-                                    @media (min-width: 640px) {
-                                        .pyramid-container { --card-unit-width: 3.75rem !important; }
-                                    }
-                                `}</style>
+        @media(min-width: 640px) {
+                                        .pyramid-container { --card-unit-width: 3.75rem!important; }
+        }
+        `}</style>
 
                                 {pyramid.map((row, r) => (
                                     <div key={r} className="flex justify-center">
@@ -915,15 +916,14 @@
                                             const canPlaceSelected = isGuideActive ? (isValid && isColorMatch(r, c, playerHand[selectedCardIndex].color)) : isValid;
 
                                             return (
-                                                <div key={`${r}-${c}`} className="relative w-10 h-[3.25rem] sm:w-14 sm:h-20 mx-0.5 grid-cell">
+                                                <div key={`${r} -${c} `} className="relative w-10 h-[3.25rem] sm:w-14 sm:h-20 mx-0.5 grid-cell">
                                                     {card ? (
                                                         <div className={`w-full h-full rounded border-2 border-white ${COLORS[card.color].bg} card-shadow flex items-center justify-center animate-pop-in`}>
                                                             <span className="text-xl sm:text-2xl drop-shadow">🐧</span>
-                                                            <span className="absolute bottom-1 right-1 text-xs sm:text-sm opacity-50">{COLORS[card.color].icon}</span>
                                                         </div>
                                                     ) : (
                                                         (canPlaceSelected && turn === 'player' && gameStatus === 'playing') ? (
-                                                            <div onClick={() => isGuideActive ? handlePlayerClick(r, c) : null} className={`w-full h-full rounded cursor-pointer valid-zone flex items-center justify-center text-xs text-slate-300 ${isGuideActive ? 'border-yellow-400 bg-yellow-400/20' : ''}`}>{isGuideActive ? 'HERE' : ''}</div>
+                                                            <div onClick={() => isGuideActive ? handlePlayerClick(r, c) : null} className={`w-full h-full rounded cursor-pointer valid-zone flex items-center justify-center text-xs text-slate-300 ${isGuideActive ? 'border-yellow-400 bg-yellow-400/20' : ''} `}>{isGuideActive ? 'HERE' : ''}</div>
                                                         ) : <div className="w-full h-full opacity-0"></div>
                                                     )}
                                                 </div>
@@ -956,7 +956,7 @@
                             {gameStatus === 'game_over' && (
                                 <div className="absolute inset-0 bg-slate-900/95 z-50 flex items-center justify-center animate-bounce-in">
                                     <div className="bg-slate-800 p-8 rounded-2xl border-2 border-cyan-500 shadow-2xl text-center max-w-sm w-full">
-                                        <div className={`text-6xl mb-4 ${finalResult === 'win' ? 'animate-jump' : ''}`}>🐧</div>
+                                        <div className={`text-6xl mb-4 ${finalResult === 'win' ? 'animate-jump' : ''} `}>🐧</div>
                                         <h2 className="text-4xl font-black mb-2 text-white italic">{finalResult === 'win' ? 'VICTORY' : (finalResult === 'loss' ? 'DEFEAT' : 'DRAW')}</h2>
 
                                         {unlockedLevel && (
@@ -979,7 +979,7 @@
                             )}
                         </div>
 
-                        <div className={`w-full bg-slate-900 p-3 border-t border-slate-700 transition-all duration-300 z-50 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] ${(turn !== 'player' || gameStatus !== 'playing') ? 'translate-y-2 opacity-90 grayscale' : ''}`}>
+                        <div className={`w-full bg-slate-900 p-3 border-t border-slate-700 transition-all duration-300 z-50 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] ${(turn !== 'player' || gameStatus !== 'playing') ? 'translate-y-2 opacity-90 grayscale' : ''} `}>
                             <div className="grid grid-cols-7 gap-2 justify-items-center max-w-lg mx-auto min-h-[7rem]">
                                 {playerHand.map((card, idx) => {
                                     if (idx >= dealtCount) return null;
@@ -988,11 +988,11 @@
                                             className={`
                                             relative w-10 h-14 sm:w-12 sm:h-16 rounded cursor-pointer border-2 border-white ${COLORS[card.color].bg} card-shadow 
                                             ${selectedCardIndex === idx ? 'selected' : 'hover:-translate-y-2'}
-                                            animate-slide-up flex items-center justify-center
+        animate-slide-up flex items-center justify-center
                                         `}
                                             style={{ transition: 'transform 0.1s' }}
                                         >
-                                            <span className="text-white drop-shadow-md text-lg">{COLORS[card.color].icon}</span>
+                                            <span className="text-2xl drop-shadow">🐧</span>
                                         </div>
                                     );
                                 })}
