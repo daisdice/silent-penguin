@@ -486,7 +486,7 @@
             return (
                 <div className="flex flex-col items-center h-full animate-bounce-in p-4 overflow-y-auto w-full">
                     <div className="my-auto flex flex-col items-center w-full max-w-lg">
-                        <h2 className="text-3xl font-bold mb-6 text-white tracking-widest flex-shrink-0">遊び方</h2>
+                        <h2 className="text-3xl font-bold mb-6 text-white tracking-widest flex-shrink-0">HOW TO PLAY</h2>
                         <div className="bg-slate-800 p-6 rounded-xl shadow-xl w-full border border-slate-700 space-y-6">
 
                             {/* Rule 1: Basics */}
@@ -494,12 +494,11 @@
                                 <div className="bg-slate-700 w-8 h-8 rounded-full flex items-center justify-center font-bold text-cyan-400 shrink-0">1</div>
                                 <div>
                                     <h3 className="font-bold text-white mb-1">ピラミッドを作る</h3>
-                                    <p className="text-sm text-slate-400">カードを配置してピラミッドを作っていきます。<span className="text-white font-bold">手札を全て使い切ること</span>を目指します。</p>
-                                    <p className="text-xs text-cyan-400 mt-1">※ 全て使い切ると<span className="font-bold">PTSが -2</span> されます（ボーナス）。</p>
+                                    <p className="text-sm text-slate-400"><span className="text-white font-bold">CPUと交互に</span>カードを配置してピラミッドを作っていきます。<span className="text-white font-bold">手札を全て使い切ること</span>を目指します。</p>
                                 </div>
                             </div>
 
-                            {/* Rule 2: Base Row (New) */}
+                            {/* Rule 2: Base Row */}
                             <div className="flex gap-4 items-start">
                                 <div className="bg-slate-700 w-8 h-8 rounded-full flex items-center justify-center font-bold text-cyan-400 shrink-0">2</div>
                                 <div>
@@ -512,7 +511,7 @@
                             <div className="flex gap-4 items-start">
                                 <div className="bg-slate-700 w-8 h-8 rounded-full flex items-center justify-center font-bold text-cyan-400 shrink-0">3</div>
                                 <div className="w-full">
-                                    <h3 className="font-bold text-white mb-2">色を合わせる</h3>
+                                    <h3 className="font-bold text-white mb-2">カードを積み上げる</h3>
                                     <div className="bg-slate-900/50 p-3 rounded-lg flex items-center justify-center gap-4 mb-2">
                                         <div className="flex flex-col items-center gap-1">
                                             <div className="flex gap-1">
@@ -535,17 +534,28 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <p className="text-sm text-slate-400">下に並んだ2枚のカードの<span className="text-cyan-400">「どちらかの色」</span>と同じなら置くことができます。</p>
+                                    <p className="text-sm text-slate-400">下に並んだ2枚のカードの<span className="text-cyan-400">「どちらかの色」</span>と同じなら<span className="text-white font-bold">上に置く</span>ことができます。</p>
                                 </div>
                             </div>
 
-                            {/* Rule 4: Pass */}
+                            {/* Rule 4: Pass & Round End */}
                             <div className="flex gap-4 items-start">
                                 <div className="bg-slate-700 w-8 h-8 rounded-full flex items-center justify-center font-bold text-cyan-400 shrink-0">4</div>
                                 <div>
-                                    <h3 className="font-bold text-white mb-1">パスとペナルティ</h3>
-                                    <p className="text-sm text-slate-400 mb-1">出せるカードがない時は<span className="text-red-400 font-bold">PASS</span>になり、ペナルティとして<span className="text-white font-bold">PTS</span>（チップ）が<span className="text-red-400">増えます</span>。</p>
-                                    <p className="text-sm font-bold text-red-500 bg-red-900/20 px-2 py-1 rounded inline-block">PTSが 10 になると負けです。</p>
+                                    <h3 className="font-bold text-white mb-1">パスとラウンド終了</h3>
+                                    <p className="text-sm text-slate-400 mb-1">出せるカードがない時は<span className="text-red-400 font-bold">PASS</span>になり、<span className="text-red-400">そのラウンドはもう参加できません</span>。</p>
+                                    <p className="text-sm text-slate-400">全員がパスするか手札がなくなるとラウンド終了です。残った手札の枚数分、<span className="text-white font-bold">PTS</span>（ペナルティ）が増えます。</p>
+                                    <p className="text-sm text-cyan-400 mt-1">カードをすべて使い切ったプレイヤーは<span className="font-bold">PTSが -2</span> されます（ボーナス）。</p>
+                                </div>
+                            </div>
+
+                            {/* Rule 5: Game End */}
+                            <div className="flex gap-4 items-start">
+                                <div className="bg-slate-700 w-8 h-8 rounded-full flex items-center justify-center font-bold text-cyan-400 shrink-0">5</div>
+                                <div>
+                                    <h3 className="font-bold text-white mb-1">勝敗の決着</h3>
+                                    <p className="text-sm text-white font-bold mb-1">ラウンド終了時、どちらかのPTSが10以上になったらゲーム終了です。</p>
+                                    <p className="text-sm text-slate-400">その時点で<span className="text-cyan-400 font-bold">PTSが少ない方</span>の勝利です。</p>
                                 </div>
                             </div>
 
